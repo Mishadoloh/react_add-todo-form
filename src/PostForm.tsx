@@ -1,99 +1,85 @@
-import usersFromServer from './api/users';
-import { useState } from 'react';
-import { getUserById } from './services/user';
-import { Todo } from './types/Todo';
+import React, { useState } from 'react';
+import { User } from './types/User';
 
 type Props = {
-  onSubmit: (todo: Todo) => void;
+  users: User[];
+  onSubmit: (data: { title: string; userId: number }) => void;
 };
 
-export const PostForm: React.FC<Props> = ({ onSubmit }) => {
-  const [titleErrorMessage, setTitleErrorMessage] = useState('');
+export const PostForm: React.FC<Props> = ({ users, onSubmit }) => {
   const [title, setTitle] = useState('');
-  const hasTitleError = titleErrorMessage !== '';
-  const [hasUserIdError, setHasUserIdError] = useState(false);
-  const [userId, setUserId] = useState(0);
+  const [userId, setUserId] = useState('');
 
-  const handleUserIdChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setUserId(+event.target.value);
-    setHasUserIdError(false);
-  };
-
-  const reset = () => {
-    setUserId(0);
-    setTitle('');
-    setTitleErrorMessage('');
-    setHasUserIdError(false);
-  };
+  const [showTitleError, setShowTitleError] = useState(false);
+  const [showUserError, setShowUserError] = useState(false);
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
 
-    setHasUserIdError(!userId);
+    const trimmedTitle = title.trim();
+    const isTitleEmpty = !trimmedTitle;
+    const isUserUnselected = !userId;
 
-    if (!title) {
-      setTitleErrorMessage('Please enter a title');
+    setShowTitleError(isTitleEmpty);
+    setShowUserError(isUserUnselected);
 
-      return;
-    }
-
-    if (!userId) {
+    if (isTitleEmpty || isUserUnselected) {
       return;
     }
 
     onSubmit({
-      id: 0,
-      title,
-      completed: false,
-      userId,
-      user: getUserById(userId),
+      title: trimmedTitle,
+      userId: Number(userId),
     });
 
-    reset();
+    // очищаємо форму після сабміту
+    setTitle('');
+    setUserId('');
+    setShowTitleError(false);
+    setShowUserError(false);
   };
 
   return (
-    <form action="/api/todos" method="POST" onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit}>
       <div className="field">
-        Title:&nbsp;
         <input
           type="text"
           data-cy="titleInput"
           placeholder="Enter a title"
           value={title}
-          onChange={event => {
-            const inputValue = event.target.value;
+          onChange={(e) => {
+            setTitle(e.target.value);
 
-            setTitle(inputValue);
-
-            if (inputValue) {
-              setTitleErrorMessage('');
-            } else {
-              setTitleErrorMessage('Please enter a title');
+            // Ховаємо тільки title-ошибку
+            if (showTitleError) {
+              setShowTitleError(false);
             }
           }}
         />
-        {hasTitleError && <span className="error">{titleErrorMessage}</span>}
+        {showTitleError && <span className="error">Please enter a title</span>}
       </div>
 
       <div className="field">
-        User:&nbsp;
         <select
           data-cy="userSelect"
           value={userId}
-          onChange={handleUserIdChange}
-        >
-          <option value="0" disabled>
-            Choose a user
-          </option>
+          onChange={(e) => {
+            setUserId(e.target.value);
 
-          {usersFromServer.map(user => (
-            <option value={user.id} key={user.id}>
+            // Ховаємо тільки user-ошибку
+            if (showUserError) {
+              setShowUserError(false);
+            }
+          }}
+        >
+          <option value="">Choose a user</option>
+          {users.map(user => (
+            <option key={user.id} value={user.id}>
               {user.name}
             </option>
           ))}
         </select>
-        {hasUserIdError && <span className="error">Please choose a user</span>}
+        {showUserError && <span className="error">Please choose a user</span>}
       </div>
 
       <button type="submit" data-cy="submitButton">
