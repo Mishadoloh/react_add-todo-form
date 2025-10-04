@@ -9,7 +9,6 @@ type Props = {
 export const PostForm: React.FC<Props> = ({ users, onSubmit }) => {
   const [title, setTitle] = useState('');
   const [userId, setUserId] = useState('');
-
   const [showTitleError, setShowTitleError] = useState(false);
   const [showUserError, setShowUserError] = useState(false);
 
@@ -17,13 +16,13 @@ export const PostForm: React.FC<Props> = ({ users, onSubmit }) => {
     event.preventDefault();
 
     const trimmedTitle = title.trim();
-    const isTitleEmpty = !trimmedTitle;
-    const isUserUnselected = !userId;
+    const validTitle = trimmedTitle !== '';
+    const validUser = userId !== '';
 
-    setShowTitleError(isTitleEmpty);
-    setShowUserError(isUserUnselected);
+    setShowTitleError(!validTitle);
+    setShowUserError(!validUser);
 
-    if (isTitleEmpty || isUserUnselected) {
+    if (!validTitle || !validUser) {
       return;
     }
 
@@ -32,7 +31,7 @@ export const PostForm: React.FC<Props> = ({ users, onSubmit }) => {
       userId: Number(userId),
     });
 
-    // очищаємо форму після сабміту
+    // очищаємо форму після успішного додавання
     setTitle('');
     setUserId('');
     setShowTitleError(false);
@@ -43,14 +42,13 @@ export const PostForm: React.FC<Props> = ({ users, onSubmit }) => {
     <form onSubmit={handleSubmit}>
       <div className="field">
         <input
-          type="text"
           data-cy="titleInput"
+          id="title"
+          type="text"
           placeholder="Enter a title"
           value={title}
-          onChange={(e) => {
-            setTitle(e.target.value);
-
-            // Ховаємо тільки title-ошибку
+          onChange={(event) => {
+            setTitle(event.target.value);
             if (showTitleError) {
               setShowTitleError(false);
             }
@@ -62,11 +60,10 @@ export const PostForm: React.FC<Props> = ({ users, onSubmit }) => {
       <div className="field">
         <select
           data-cy="userSelect"
+          id="user"
           value={userId}
-          onChange={(e) => {
-            setUserId(e.target.value);
-
-            // Ховаємо тільки user-ошибку
+          onChange={(event) => {
+            setUserId(event.target.value);
             if (showUserError) {
               setShowUserError(false);
             }

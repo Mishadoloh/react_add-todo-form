@@ -1,36 +1,44 @@
 import './App.scss';
 import { useState } from 'react';
-
 import todosFromServer from './api/todos';
 import usersFromServer from './api/users';
-
-import { getUserById } from './services/user';
-import { TodoList } from './components/TodoList';
-import { PostForm } from './PostForm';
 import { Todo } from './types/Todo';
 import { User } from './types/User';
+import { getUserById } from './services/user';
+import { PostForm } from './PostForm';
+import { TodoList } from './components/TodoList';
 
-// Підготовка початкових TODO
-const initialTodos: Todo[] = todosFromServer.map(todo => ({
-  ...todo,
-  user: getUserById(todo.userId),
-}));
-
-// Надійне визначення нового ID
 function getNewTodoId(todos: Todo[]) {
-  const maxId = todos.length > 0
-    ? Math.max(...todos.map(todo => todo.id))
-    : 0;
-
-  return maxId + 1;
+  return todos.length > 0
+    ? Math.max(...todos.map(todo => todo.id)) + 1
+    : 1;
 }
 
 export const App: React.FC = () => {
-  const [todos, setTodos] = useState<Todo[]>(initialTodos);
   const [users] = useState<User[]>(usersFromServer);
 
-  const handleAddTodo = ({ title, userId }: { title: string; userId: number }) => {
-    const user = getUserById(userId);
+  const enrichedTodos: Todo[] = todosFromServer
+    .map(todo => {
+      const user = getUserById(todo.userId, users);
+      if (!user) return null;
+      return { ...todo, user };
+    })
+    .filter((todo): todo is Todo => todo !== null);
+
+  const [todos, setTodos] = useState<Todo[]>(enrichedTodos);
+
+  const handleAddTodo = ({
+    title,
+    userId,
+  }: {
+    title: string;
+    userId: number;
+  }) => {
+    const user = getUserById(userId, users);
+    if (!user) {
+      alert('User not found');
+      return;
+    }
 
     const newTodo: Todo = {
       id: getNewTodoId(todos),
@@ -40,14 +48,13 @@ export const App: React.FC = () => {
       user,
     };
 
-    setTodos(prevTodos => [...prevTodos, newTodo]);
+    setTodos(prev => [...prev, newTodo]);
   };
 
   return (
     <div className="App">
       <h1>Add todo form</h1>
-
-      <PostForm users={users} onSubmit={handleAddTodo} />
+      <PostForm onSubmit={handleAddTodo} users={users} />
       <TodoList todos={todos} />
     </div>
   );
